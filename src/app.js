@@ -22,6 +22,7 @@ app.use(express.static(path.join(__dirname, '../frontend')))
 const authRouter = require("./routes/auth.routes")
 const accountRouter = require("./routes/accounts.routes")
 const transactionRoutes = require("./routes/transaction.routes")
+const errorHandler = require("./middleware/error.middleware")
 
 /**
  * - API Health check (moved from / to /api/health)
@@ -38,5 +39,8 @@ app.use("/api/transactions", transactionRoutes)
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'))
 })
+
+// Global error handler middleware
+app.use(errorHandler)
 
 module.exports = app
