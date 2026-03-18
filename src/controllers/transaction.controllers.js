@@ -31,6 +31,24 @@ async function createTransaction(req, res) {
         })
     }
 
+    if (typeof amount !== "number" || amount <= 0) {
+        return res.status(400).json({
+            message: "Amount must be a positive number"
+        })
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(fromAccount) || !mongoose.Types.ObjectId.isValid(toAccount)) {
+        return res.status(400).json({
+            message: "Invalid account ID format"
+        })
+    }
+
+    if (fromAccount === toAccount) {
+        return res.status(400).json({
+            message: "Cannot transfer funds to the same account"
+        })
+    }
+
     const fromUserAccount = await accountModel.findOne({ _id: fromAccount })
     const toUserAccount = await accountModel.findOne({ _id: toAccount })
 
@@ -97,33 +115,33 @@ async function createTransaction(req, res) {
         const session = await mongoose.startSession()
         session.startTransaction()
 
-        transaction = (await transactionModel.create([ {
+        transaction = (await transactionModel.create([{
             fromAccount,
             toAccount,
             amount,
             idempotencyKey,
             status: "PENDING"
-        } ], { session }))[ 0 ]
+        }], { session }))[0]
 
         /**
          * 6. Create DEBIT ledger entry
          */
-        await ledgerModel.create([ {
+        await ledgerModel.create([{
             account: fromAccount,
             amount,
             transaction: transaction._id,
             type: "DEBIT"
-        } ], { session })
+        }], { session })
 
         /**
          * 7. Create CREDIT ledger entry
          */
-        await ledgerModel.create([ {
+        await ledgerModel.create([{
             account: toAccount,
             amount,
             transaction: transaction._id,
             type: "CREDIT"
-        } ], { session })
+        }], { session })
 
         /**
          * 8. Mark transaction COMPLETED
@@ -193,19 +211,19 @@ async function createInitialFundsTransaction(req, res) {
         status: "PENDING"
     })
 
-    await ledgerModel.create([ {
+    await ledgerModel.create([{
         account: fromUserAccount._id,
         amount,
         transaction: transaction._id,
         type: "DEBIT"
-    } ], { session })
+    }], { session })
 
-    await ledgerModel.create([ {
+    await ledgerModel.create([{
         account: toAccount,
         amount,
         transaction: transaction._id,
         type: "CREDIT"
-    } ], { session })
+    }], { session })
 
     transaction.status = "COMPLETED"
     await transaction.save({ session })

@@ -1,4 +1,5 @@
 const accountModel = require("../models/account.models");
+const mongoose = require("mongoose");
 
 /**
  * - POST /api/accounts/
@@ -8,9 +9,15 @@ async function createAccountController(req, res) {
     const { currency } = req.body
     const user = req.user;
 
+    if (currency && typeof currency !== "string") {
+        return res.status(400).json({
+            message: "Invalid currency format"
+        })
+    }
+
     const account = await accountModel.create({
         user: user._id,
-        currency
+        currency: currency ? currency.toUpperCase() : "USD"
     })
 
     res.status(201).json({
@@ -36,6 +43,12 @@ async function getUserAccountsController(req, res) {
  */
 async function getAccountBalanceController(req, res) {
     const { accountId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(accountId)) {
+        return res.status(400).json({
+            message: "Invalid account ID format"
+        })
+    }
 
     const account = await accountModel.findOne({
         _id: accountId,
