@@ -237,7 +237,52 @@ async function createInitialFundsTransaction(req, res) {
     })
 }
 
+/**
+ * - GET /api/transactions/
+ * - Fetch transaction history for all accounts belonging to the authenticated user
+ */
+async function getTransactionHistory(req, res) {
+    const userAccounts = await accountModel.find({ user: req.user._id }).select("_id")
+    const accountIds = userAccounts.map(acc => acc._id)
+
+    if (accountIds.length === 0) {
+        return res.status(200).json({
+            transactions: [],
+            total: 0,
+            page: 1,
+            totalPages: 0
+        })
+    }
+
+    const page = parseInt(req.query.page, 10) || 1
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100)
+    const skip = (page - 1) * limit
+
+    const query = {
+        $or: [
+            { fromAccount: { $in: accountIds } },
+            { toAccount: { $in: accountIds } }
+        ]
+    }
+
+    const [transactions, total] = await Promise.all([
+        transactionModel.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        transactionModel.countDocuments(query)
+    ])
+
+    return res.status(200).json({
+        transactions,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+    })
+}
+
 module.exports = {
     createTransaction,
-    createInitialFundsTransaction
+    createInitialFundsTransaction,
+    getTransactionHistory
 }

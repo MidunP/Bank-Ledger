@@ -5,6 +5,13 @@ const transactionController = require("../controllers/transaction.controllers")
 const transactionRoutes = Router();
 
 /**
+ * - GET /api/transactions/
+ * - Get transaction history for user's accounts with pagination
+ * - Protected Route
+ */
+transactionRoutes.get("/", authMiddleware.authMiddleware, transactionController.getTransactionHistory)
+
+/**
  * - POST /api/transactions/
  * - Create a new transaction
  * - Protected Route
