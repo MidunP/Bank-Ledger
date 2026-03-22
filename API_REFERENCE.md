@@ -78,6 +78,11 @@ curl -X POST http://localhost:3000/api/transactions \
     "idempotencyKey": "unique-key-001"
   }'
 
+# Get transaction history (with pagination)
+# GET /api/transactions?page=1&limit=20
+curl -X GET "http://localhost:3000/api/transactions?page=1&limit=20" \
+  -H "Authorization: Bearer <USER_TOKEN>"
+
 # Add initial funds to an account (SYSTEM USER ONLY)
 # POST /api/transactions/system/initial-funds
 # Body: { toAccount, amount, idempotencyKey }
