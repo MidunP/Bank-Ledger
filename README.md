@@ -31,8 +31,16 @@ A backend banking ledger system where users can
 - Start the backend
   - `npm run dev`
 
+## Features & Security
+
+- **Double-Entry Ledger**: Immutable debits and credits system guaranteeing transactional balance integrity.
+- **Idempotency Safeguards**: Prevents double-spending and duplicate execution using client-side idempotency keys.
+- **Strict Input Validation**: Sanity checks on account IDs, transaction amounts, and currencies.
+- **Transaction History**: Paginated record queries for auditability (`GET /api/transactions`).
+- **Global Error Handling**: Uniform JSON error response contract across all API endpoints.
+
 ## API Routes
 
-- Auth — `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`
-- Accounts — `POST /api/accounts`, `GET /api/accounts`, `GET /api/accounts/balance/:accountId`
-- Transactions — `POST /api/transactions`, `POST /api/transactions/system/initial-funds`
+- **Auth** — `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`
+- **Accounts** — `POST /api/accounts`, `GET /api/accounts`, `GET /api/accounts/balance/:accountId`
+- **Transactions** — `POST /api/transactions`, `GET /api/transactions` (paginated), `POST /api/transactions/system/initial-funds`
