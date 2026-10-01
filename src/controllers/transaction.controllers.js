@@ -184,6 +184,12 @@ async function createInitialFundsTransaction(req, res) {
         })
     }
 
+    if (typeof amount !== "number" || amount <= 0) {
+        return res.status(400).json({
+            message: "Amount must be a positive number"
+        })
+    }
+
     const toUserAccount = await accountModel.findOne({ _id: toAccount })
 
     if (!toUserAccount) {
@@ -200,36 +206,49 @@ async function createInitialFundsTransaction(req, res) {
         })
     }
 
+    let transaction
     const session = await mongoose.startSession()
-    session.startTransaction()
+    try {
+        session.startTransaction()
 
-    const transaction = new transactionModel({
-        fromAccount: fromUserAccount._id,
-        toAccount,
-        amount,
-        idempotencyKey,
-        status: "PENDING"
-    })
+        // Create transaction FIRST inside session so _id is persisted before ledger entries reference it
+        transaction = (await transactionModel.create([{
+            fromAccount: fromUserAccount._id,
+            toAccount,
+            amount,
+            idempotencyKey,
+            status: "PENDING"
+        }], { session }))[0]
 
-    await ledgerModel.create([{
-        account: fromUserAccount._id,
-        amount,
-        transaction: transaction._id,
-        type: "DEBIT"
-    }], { session })
+        await ledgerModel.create([{
+            account: fromUserAccount._id,
+            amount,
+            transaction: transaction._id,
+            type: "DEBIT"
+        }], { session })
 
-    await ledgerModel.create([{
-        account: toAccount,
-        amount,
-        transaction: transaction._id,
-        type: "CREDIT"
-    }], { session })
+        await ledgerModel.create([{
+            account: toAccount,
+            amount,
+            transaction: transaction._id,
+            type: "CREDIT"
+        }], { session })
 
-    transaction.status = "COMPLETED"
-    await transaction.save({ session })
+        await transactionModel.findOneAndUpdate(
+            { _id: transaction._id },
+            { status: "COMPLETED" },
+            { session, new: true }
+        )
 
-    await session.commitTransaction()
-    session.endSession()
+        await session.commitTransaction()
+        session.endSession()
+    } catch (error) {
+        await session.abortTransaction()
+        session.endSession()
+        return res.status(500).json({
+            message: "Initial funds transaction failed, please retry",
+        })
+    }
 
     return res.status(201).json({
         message: "Initial funds transaction completed successfully",

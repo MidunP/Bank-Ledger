@@ -36,11 +36,13 @@ app.use("/api/accounts", accountRouter)
 app.use("/api/transactions", transactionRoutes)
 
 // Catch-all to serve the frontend index.html for any other route
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'))
+app.use((req, res, next) => {
+    res.sendFile(path.join(__dirname, '../frontend/index.html'), (err) => {
+        if (err) next(err)
+    })
 })
 
-// Global error handler middleware
+// Global error handler middleware — MUST be last
 app.use(errorHandler)
 
 module.exports = app
